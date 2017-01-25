@@ -5,6 +5,8 @@ plugin_blacklist:
 - image_pub
 - vibration
 - distance_sensor
-
-plugin_whitelist: []
+- ghgjg
+plugin_whitelist:
 #- 'sys_*'
+- gps_reroute
+- kjhjhkj

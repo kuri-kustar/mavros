@@ -68,5 +68,8 @@
         <class name="hil_controls" type="mavplugin::HilControlsPlugin" base_class_type="mavplugin::MavRosPlugin">
 		<description>Publish HIL controls values</description>
 	</class>
+        <class name="gps_reroute" type="mavplugin::GPSReRoutePlugin" base_class_type="mavplugin::MavRosPlugin">
+                <description>Reroute GPS from external source to FCU</description>
+        </class>
 </library>
 

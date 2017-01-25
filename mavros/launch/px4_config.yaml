@@ -174,4 +174,7 @@ vision_speed:
 vibration:
   frame_id: "vibration"
 
+gps_reroute:
+  gps_fix_topic: "gps_fix"
+
 # vim:set ts=2 sw=2 et:
