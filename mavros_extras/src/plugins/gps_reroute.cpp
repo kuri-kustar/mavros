@@ -70,19 +70,19 @@ private:
   {
     mavlink_message_t msg;
     mavlink_hil_gps_t pos;
-    pos.time_usec = gpsFix->header.stamp.toNSec()/1000;
+    pos.time_usec = gpsFix->header.stamp.toNSec()*1000;
     pos.lat = gpsFix->latitude;
     pos.lon = gpsFix->longitude;
     pos.alt = gpsFix->altitude;
-    pos.vel = 3;//sqrt(vn * vn + ve * ve);		// [cm/s]
-    pos.vn =  4;// [cm/s]
-    pos.ve =  5;// [cm/s]
-    pos.vd =  6;// [cm/s]
-    pos.cog = 7;// [degrees * 100]
-    pos.eph = 8;
-    pos.epv = 9;
+    pos.vel = 0;//sqrt(vn * vn + ve * ve);		// [cm/s]
+    pos.vn =  0;// [cm/s]
+    pos.ve =  0;// [cm/s]
+    pos.vd =  0;// [cm/s]
+    pos.cog = 0;// [degrees * 100]
+    pos.eph = 123;
+    pos.epv = 123;
     pos.fix_type = 3;
-    pos.satellites_visible = 5;
+    pos.satellites_visible = 12;
     mavlink_msg_hil_gps_pack_chan(UAS_PACK_CHAN(uas), &msg,
                                   pos.time_usec,
                                   pos.fix_type,
