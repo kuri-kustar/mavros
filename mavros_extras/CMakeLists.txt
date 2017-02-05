@@ -82,13 +82,13 @@ target_link_libraries(mavros_extras
 )
 
 ## Declare a cpp executable
-add_executable(gcs_image_bridge
-  src/gcs_image_bridge.cpp
-)
-target_link_libraries(gcs_image_bridge
-  ${mavros_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
+#add_executable(gcs_image_bridge
+#  src/gcs_image_bridge.cpp
+#)
+#target_link_libraries(gcs_image_bridge
+#  ${mavros_LIBRARIES}
+#  ${catkin_LIBRARIES}
+#)
 
 add_executable(copter_visualization
   src/copter_visualization.cpp
@@ -120,7 +120,7 @@ install(PROGRAMS
 )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS mavros_extras gcs_image_bridge copter_visualization servo_state_publisher
+install(TARGETS mavros_extras copter_visualization servo_state_publisher #gcs_image_bridge
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

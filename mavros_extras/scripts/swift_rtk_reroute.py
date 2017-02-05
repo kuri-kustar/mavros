@@ -10,8 +10,31 @@ from sensor_msgs.msg import NavSatFix
 from mavros_msgs.msg import SwiftSpp
 
 
+#/**
+# * @brief Pack a hil_gps message on a channel
+# * @param system_id ID of this system
+#* @param component_id ID of this component (e.g. 200 for IMU)
+# * @param chan The MAVLink channel this message will be sent over
+# * @param msg The MAVLink message to compress the data into
+# * @param time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
+# * @param fix_type 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.
+# * @param lat Latitude (WGS84), in degrees * 1E7
+# * @param lon Longitude (WGS84), in degrees * 1E7
+# * @param alt Altitude (AMSL, not WGS84), in meters * 1000 (positive for up)
+# * @param eph GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535
+# * @param epv GPS VDOP vertical dilution of position in cm (m*100). If unknown, set to: 65535
+# * @param vel GPS ground speed (m/s * 100). If unknown, set to: 65535
+# * @param vn GPS velocity in cm/s in NORTH direction in earth-fixed NED frame
+# * @param ve GPS velocity in cm/s in EAST direction in earth-fixed NED frame
+# * @param vd GPS velocity in cm/s in DOWN direction in earth-fixed NED frame
+# * @param cog Course over ground (NOT heading, but direction of movement) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: 65535
+# * @param satellites_visible Number of satellites visible. If unknown, set to 255
+# * @return length of the message in bytes (excluding serial stream start sign)
+# */
+
 def gpsrtk():
-    pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', NavSatFix, queue_size=10)
+    #pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', NavSatFix, queue_size=10)
+    pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', SwiftSpp, queue_size=10)
     rospy.init_node('swift_rtk_reroute', anonymous=True)
     parser = argparse.ArgumentParser(description="Swift Navigation SBP Example.")
     parser.add_argument("-p", "--port",
@@ -22,21 +45,26 @@ def gpsrtk():
                       help="specify the baud rate to use.")
     args = parser.parse_args()
     # Open a connection to Piksi
+    msgFieldCounter = 0 
     with PySerialDriver(args.port[0], args.baud[0]) as driver:
     	with Handler(Framer(driver.read, None, verbose=True)) as source:
+		flagMsg1 = False 
+		flagMsg2 = False
+		flagMsg3 = True 
       		try:
         		for msg, metadata in source.filter():
-		         # Print out representation of the message	
+		         # Print out representation of the message
+				msg1 = SwiftSpp()   
 			 	if msg.msg_type == 0x0201:    
-
-					msg1 = SwiftSpp()   
-				  	print msg.lon 						
-					print msg.lat
-					print msg.height
-					print msg.tow
-					print msg.h_accuracy
-					print msg.v_accuracy
-					print msg.n_sats
+					#print 'msg1'
+					flagMsg1 = True
+				  	#print msg.lon 						
+					#print msg.lat
+					#print msg.height
+					#print msg.tow
+					#print msg.h_accuracy
+					#print msg.v_accuracy
+					#print msg.n_sats
                                         msg1.header.stamp = rospy.Time.now()
 					msg1.latitude_s = msg.lon * 10000000
 					msg1.longitude_s = msg.lat * 10000000
@@ -45,27 +73,36 @@ def gpsrtk():
 					msg1.horizontal_acc_s = msg.h_accuracy
 					msg1.vertical_acc_s = msg.v_accuracy 
 					msg1.number_of_Sat = msg.n_sats 			
-					pub.publish(msg1)
-					'''
-					msg1 = NavSatFix()   
-				  	print msg.lon 
-					print msg.lat
-					print msg.height
-                                        msg1.header.stamp = rospy.Time.now()
-					msg1.latitude = msg.lon * 10000000
-					msg1.longitude = msg.lat * 10000000
-					msg1.altitude = msg.height * 1000
-					pub.publish(msg1)
-					'''
-				if msg.msg_type == 0x0202:    
-					print msg.x						
-					print msg.y
-					print msg.z
-					msg1.x_vector_from_base_to_rover = msg.x
-					msg1.y_vector_from_base_to_rover = msg.y
-					msg1.z_vector_from_base_to_rover = msg.z
+
+					# Other fields from the message (according to the documentation page 12)
+                                        # msg.h_accuracy (mm)
+                                        # msg.v_accuracy (mm)
+                                        # msg.nsats
+                                        # msg.flags - check page 12 of documentation (basicaly: single point, differential, fixed rtk, f)
+                                        # msg.tow (time of week in ms)
+
+				
+
+				if msg.msg_type == 0x0205:    
+					#print 'msg2'
+					flagMsg2 = True
+					#print 'x' , msg.n						
+					#print 'y' , msg.e
+					#print 'z' , msg.d
+					msg1.vn = msg.n
+					msg1.ve = msg.e
+					msg1.vd = msg.d
 
 
+				if msg.msg_type == 0x0208:   # or 0x0206 #This msg is never received 
+					flagMsg3 = True
+					msg1.hdop = msg.hdop						
+					msg1.vdop = msg.vdop
+
+				
+				if(flagMsg1 == True and flagMsg2 == True and flagMsg3 == True ):
+					pub.publish(msg1)
+				
       		except KeyboardInterrupt:
         		pass
     #rate = rospy.Rate(10) # 10hz
