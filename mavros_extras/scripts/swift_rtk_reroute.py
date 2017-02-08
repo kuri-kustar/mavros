@@ -7,8 +7,9 @@ from sbp.client.loggers.json_logger import JSONLogger
 from sbp.navigation import SBP_MSG_BASELINE_NED, MsgBaselineNED
 import argparse
 from sensor_msgs.msg import NavSatFix
-from mavros_msgs.msg import SwiftSpp
-
+from mavros_msgs.msg import SwiftSbp
+from geometry_msgs.msg import PoseStamped
+import math
 
 #/**
 # * @brief Pack a hil_gps message on a channel
@@ -32,9 +33,16 @@ from mavros_msgs.msg import SwiftSpp
 # * @return length of the message in bytes (excluding serial stream start sign)
 # */
 
+
+
+def binary(num, pre='0b', length=8, spacer=0):
+    return '{0}{{:{1}>{2}}}'.format(pre, spacer, length).format(bin(num)[2:])
+
 def gpsrtk():
     #pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', NavSatFix, queue_size=10)
-    pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', SwiftSpp, queue_size=10)
+    pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', SwiftSbp, queue_size=10)
+    #pub2 = rospy.Publisher('/distance/gps_fix', PoseStamped, queue_size=10)
+
     rospy.init_node('swift_rtk_reroute', anonymous=True)
     parser = argparse.ArgumentParser(description="Swift Navigation SBP Example.")
     parser.add_argument("-p", "--port",
@@ -50,29 +58,36 @@ def gpsrtk():
     	with Handler(Framer(driver.read, None, verbose=True)) as source:
 		flagMsg1 = False 
 		flagMsg2 = False
-		flagMsg3 = True 
+		flagMsg3 = True
+		msg1 = SwiftSbp()
       		try:
         		for msg, metadata in source.filter():
 		         # Print out representation of the message
-				msg1 = SwiftSpp()   
+				#msg1 = SwiftSpp()   
 			 	if msg.msg_type == 0x0201:    
 					#print 'msg1'
 					flagMsg1 = True
-				  	#print msg.lon 						
-					#print msg.lat
-					#print msg.height
+				  	print msg.lon  * 10000000						
+					print msg.lat * 10000000
+					print msg.height * 1000
+					print 'flag' , msg.flags
+					std = bin(msg.flags)
+					print 'reem' , binary(8)
+					print 'binary', binary(msg.flags)[7:10]
+					br = binary(msg.flags)[7:10]
+					print 'int' , int(br)  
 					#print msg.tow
 					#print msg.h_accuracy
 					#print msg.v_accuracy
 					#print msg.n_sats
                                         msg1.header.stamp = rospy.Time.now()
-					msg1.latitude_s = msg.lon * 10000000
-					msg1.longitude_s = msg.lat * 10000000
-					msg1.height_s = msg.height * 1000
-					msg1.tow_s = msg.tow
-					msg1.horizontal_acc_s = msg.h_accuracy
-					msg1.vertical_acc_s = msg.v_accuracy 
-					msg1.number_of_Sat = msg.n_sats 			
+					msg1.latitude = msg.lon * 10000000
+					msg1.longitude = msg.lat * 10000000
+					msg1.height = msg.height * 1000
+					msg1.tow = msg.tow
+					msg1. horizontal_accuracy = msg.h_accuracy
+					msg1.vertical_accuracy = msg.v_accuracy 
+					msg1.numOfSat = msg.n_sats 			
 
 					# Other fields from the message (according to the documentation page 12)
                                         # msg.h_accuracy (mm)
@@ -92,15 +107,45 @@ def gpsrtk():
 					msg1.vn = msg.n
 					msg1.ve = msg.e
 					msg1.vd = msg.d
-
+				 	print 'North' , msg.n 
+					#dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d)
+					#msg1.distance  = dist
+					#print 'Distance is' , dist 
+                                        #msg1.distance  = dist
 
 				if msg.msg_type == 0x0208:   # or 0x0206 #This msg is never received 
 					flagMsg3 = True
 					msg1.hdop = msg.hdop						
 					msg1.vdop = msg.vdop
-
 				
-				if(flagMsg1 == True and flagMsg2 == True and flagMsg3 == True ):
+##################################To calculate, print and publish  the distance between the rover and the base station #################################
+				if msg.msg_type == 0x020C:
+					#dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d) 
+					#print dist 	
+					msg1.baseline_north = msg.n 
+					msg1.baseline_east = msg.e
+					msg1.baseline_down = msg.d
+					#print 'distance' 
+					#msg1.distance  = dist 		
+
+
+########################################################################################################################################################
+
+
+					#if msg.msg_type == 0x0200:
+					#print "MSG2"
+					#msg2 = PoseStamped() 
+					#msg2.pose.position.x = msg.x
+					#msg2.pose.position.y = msg.y
+					#msg2.pose.position.z = msg.z
+					#pub2.publish(msg2) 
+				
+				if(flagMsg1 == True and flagMsg2 == True and flagMsg3 ==True ):
+					print "*****************************************"			
+					print 'msg3'
+					flagMsg1 = False
+					flagMsg2 = False
+					flagMsg3 = False
 					pub.publish(msg1)
 				
       		except KeyboardInterrupt:
