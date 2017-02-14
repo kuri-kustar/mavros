@@ -72,10 +72,11 @@ def gpsrtk():
 					print msg.height * 1000
 					print 'flag' , msg.flags
 					std = bin(msg.flags)
-					print 'reem' , binary(8)
+					#print 'reem' , binary(8)
 					print 'binary', binary(msg.flags)[7:10]
 					br = binary(msg.flags)[7:10]
-					print 'int' , int(br)  
+					print 'int' , int(br)
+					msg1.flag= int(br)  
 					#print msg.tow
 					#print msg.h_accuracy
 					#print msg.v_accuracy
@@ -107,11 +108,8 @@ def gpsrtk():
 					msg1.vn = msg.n
 					msg1.ve = msg.e
 					msg1.vd = msg.d
-				 	print 'North' , msg.n 
-					#dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d)
-					#msg1.distance  = dist
-					#print 'Distance is' , dist 
-                                        #msg1.distance  = dist
+				 	print 'North' , msg.n  
+                                 
 
 				if msg.msg_type == 0x0208:   # or 0x0206 #This msg is never received 
 					flagMsg3 = True
@@ -119,14 +117,13 @@ def gpsrtk():
 					msg1.vdop = msg.vdop
 				
 ##################################To calculate, print and publish  the distance between the rover and the base station #################################
-				if msg.msg_type == 0x020C:
-					#dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d) 
-					#print dist 	
+				if msg.msg_type == 0x0203:
+					dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d) 
+					print 'distance in mm' , dist 	
 					msg1.baseline_north = msg.n 
 					msg1.baseline_east = msg.e
 					msg1.baseline_down = msg.d
-					#print 'distance' 
-					#msg1.distance  = dist 		
+					msg1.distance  = dist 		
 
 
 ########################################################################################################################################################
@@ -145,7 +142,7 @@ def gpsrtk():
 					print 'msg3'
 					flagMsg1 = False
 					flagMsg2 = False
-					flagMsg3 = False
+					#flagMsg3 = False
 					pub.publish(msg1)
 				
       		except KeyboardInterrupt:
