@@ -66,9 +66,9 @@ def gpsrtk():
 					#print msg.v_accuracy
 					#print msg.n_sats
                                         msg1.header.stamp = rospy.Time.now()
-					msg1.latitude_s = msg.lon * 10000000
-					msg1.longitude_s = msg.lat * 10000000
-					msg1.height_s = msg.height * 1000
+					msg1.latitude_s  = msg.lat  * 10000000
+					msg1.longitude_s = msg.lon  * 10000000
+					msg1.height_s    = msg.height * 1000
 					msg1.tow_s = msg.tow
 					msg1.horizontal_acc_s = msg.h_accuracy
 					msg1.vertical_acc_s = msg.v_accuracy 
