@@ -81,24 +81,14 @@ def gpsrtk():
 					#print msg.h_accuracy
 					#print msg.v_accuracy
 					#print msg.n_sats
-                                        msg1.header.stamp = rospy.Time.now()
-<<<<<<< HEAD
-					msg1.latitude_s  = msg.lat  * 10000000
-					msg1.longitude_s = msg.lon  * 10000000
-					msg1.height_s    = msg.height * 1000
-					msg1.tow_s = msg.tow
-					msg1.horizontal_acc_s = msg.h_accuracy
-					msg1.vertical_acc_s = msg.v_accuracy 
-					msg1.number_of_Sat = msg.n_sats 			
-=======
-					msg1.latitude = msg.lon * 10000000
-					msg1.longitude = msg.lat * 10000000
-					msg1.height = msg.height * 1000
-					msg1.tow = msg.tow
-					msg1. horizontal_accuracy = msg.h_accuracy
-					msg1.vertical_accuracy = msg.v_accuracy 
-					msg1.numOfSat = msg.n_sats 			
->>>>>>> 0121ed57418c60c103cbaa05f53ae0693f563039
+                                        msg1.header.stamp         = rospy.Time.now()
+					msg1.latitude             = msg.lat * 10000000
+					msg1.longitude            = msg.lon * 10000000
+					msg1.height               = msg.height * 1000
+					msg1.tow                  = msg.tow
+					msg1.horizontal_accuracy  = msg.h_accuracy
+					msg1.vertical_accuracy    = msg.v_accuracy 
+					msg1.numOfSat             = msg.n_sats 			
 
 					# Other fields from the message (according to the documentation page 12)
                                         # msg.h_accuracy (mm)
@@ -120,7 +110,6 @@ def gpsrtk():
 					msg1.vd = msg.d
 				 	print 'North' , msg.n  
                                  
-
 				if msg.msg_type == 0x0208:   # or 0x0206 #This msg is never received 
 					flagMsg3 = True
 					msg1.hdop = msg.hdop						
