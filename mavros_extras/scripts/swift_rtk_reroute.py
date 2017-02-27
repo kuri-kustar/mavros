@@ -5,6 +5,7 @@ from sbp.client.drivers.pyserial_driver import PySerialDriver
 from sbp.client import Handler, Framer
 from sbp.client.loggers.json_logger import JSONLogger
 from sbp.navigation import SBP_MSG_BASELINE_NED, MsgBaselineNED
+import sbp.version
 import argparse
 from sensor_msgs.msg import NavSatFix
 from mavros_msgs.msg import SwiftSbp
@@ -33,123 +34,92 @@ import math
 # * @return length of the message in bytes (excluding serial stream start sign)
 # */
 
-
-
-def binary(num, pre='0b', length=8, spacer=0):
-    return '{0}{{:{1}>{2}}}'.format(pre, spacer, length).format(bin(num)[2:])
-
 def gpsrtk():
-    #pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', NavSatFix, queue_size=10)
+
+    rospy.sleep(0.5)  # wait for a while for init to complete before printing
+    rospy.loginfo(rospy.get_name() + " start")
+    rospy.loginfo("libsbp version currently used: " + sbp.version.get_git_version())
+
+    serial_port = rospy.get_param('~serial_port', '/dev/piksi')
+    baud_rate   = rospy.get_param('~baud_rate', 1000000)
+    
+    print serial_port,baud_rate
+    
     pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', SwiftSbp, queue_size=10)
-    #pub2 = rospy.Publisher('/distance/gps_fix', PoseStamped, queue_size=10)
-
     rospy.init_node('swift_rtk_reroute', anonymous=True)
-    parser = argparse.ArgumentParser(description="Swift Navigation SBP Example.")
-    parser.add_argument("-p", "--port",
-                      default=['/dev/ttyUSB0'], nargs=1,
-                      help="specify the serial port to use.")
-    parser.add_argument("-b", "--baud",
-                      default=[1000000], nargs=1,
-                      help="specify the baud rate to use.")
-    args = parser.parse_args()
+    # We might need it later
+    poseStampedECEF = PoseStamped()
     # Open a connection to Piksi
-    msgFieldCounter = 0 
-    with PySerialDriver(args.port[0], args.baud[0]) as driver:
-    	with Handler(Framer(driver.read, None, verbose=True)) as source:
-		flagMsg1 = False 
-		flagMsg2 = False
-		flagMsg3 = True
-		msg1 = SwiftSbp()
-      		try:
-        		for msg, metadata in source.filter():
-		         # Print out representation of the message
-				#msg1 = SwiftSpp()   
-			 	if msg.msg_type == 0x0201:    
-					#print 'msg1'
-					flagMsg1 = True
-				  	print msg.lon  * 10000000						
-					print msg.lat * 10000000
-					print msg.height * 1000
-					print 'flag' , msg.flags
-					std = bin(msg.flags)
-					#print 'reem' , binary(8)
-					print 'binary', binary(msg.flags)[7:10]
-					br = binary(msg.flags)[7:10]
-					print 'int' , int(br)
-					msg1.flag= int(br)  
-					#print msg.tow
-					#print msg.h_accuracy
-					#print msg.v_accuracy
-					#print msg.n_sats
-                                        msg1.header.stamp         = rospy.Time.now()
-					msg1.latitude             = msg.lat * 10000000
-					msg1.longitude            = msg.lon * 10000000
-					msg1.height               = msg.height * 1000
-					msg1.tow                  = msg.tow
-					msg1.horizontal_accuracy  = msg.h_accuracy
-					msg1.vertical_accuracy    = msg.v_accuracy 
-					msg1.numOfSat             = msg.n_sats 			
-
-					# Other fields from the message (according to the documentation page 12)
-                                        # msg.h_accuracy (mm)
-                                        # msg.v_accuracy (mm)
-                                        # msg.nsats
-                                        # msg.flags - check page 12 of documentation (basicaly: single point, differential, fixed rtk, f)
-                                        # msg.tow (time of week in ms)
-
-				
-
-				if msg.msg_type == 0x0205:    
-					#print 'msg2'
-					flagMsg2 = True
-					#print 'x' , msg.n						
-					#print 'y' , msg.e
-					#print 'z' , msg.d
-					msg1.vn = msg.n
-					msg1.ve = msg.e
-					msg1.vd = msg.d
-				 	print 'North' , msg.n  
-                                 
-				if msg.msg_type == 0x0208:   # or 0x0206 #This msg is never received 
-					flagMsg3 = True
-					msg1.hdop = msg.hdop						
-					msg1.vdop = msg.vdop
-				
-##################################To calculate, print and publish  the distance between the rover and the base station #################################
-				if msg.msg_type == 0x0203:
-					dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d) 
-					print 'distance in mm' , dist 	
-					msg1.baseline_north = msg.n 
-					msg1.baseline_east = msg.e
-					msg1.baseline_down = msg.d
-					msg1.distance  = dist 		
-
-
-########################################################################################################################################################
-
-
-					#if msg.msg_type == 0x0200:
-					#print "MSG2"
-					#msg2 = PoseStamped() 
-					#msg2.pose.position.x = msg.x
-					#msg2.pose.position.y = msg.y
-					#msg2.pose.position.z = msg.z
-					#pub2.publish(msg2) 
-				
-				if(flagMsg1 == True and flagMsg2 == True and flagMsg3 ==True ):
-					print "*****************************************"			
-					print 'msg3'
-					flagMsg1 = False
-					flagMsg2 = False
-					#flagMsg3 = False
-					pub.publish(msg1)
-				
-      		except KeyboardInterrupt:
-        		pass
-    #rate = rospy.Rate(10) # 10hz
-    #while not rospy.is_shutdown(): 
-    #    rate.sleep()
-
+    with PySerialDriver(serial_port, baud_rate) as driver:
+        with Handler(Framer(driver.read, None, verbose=True)) as source:
+            poseLLHReceived = False
+            poseNEDReceived = False
+            velNEDReveived  = False
+            dopsReceived    = False
+            swiftSbpMsg = SwiftSbp()
+            try:
+                print "\n"
+                for msg, metadata in source.filter():
+                    #MSG POS ECEF
+                    if msg.msg_type == 0x0200:
+                        print "MSG POS ECEF 0x0200"
+                        poseStampedECEF = PoseStamped()
+                        poseStampedECEF.pose.position.x = msg.x
+                        poseStampedECEF.pose.position.y = msg.y
+                        poseStampedECEF.pose.position.z = msg.z                    
+                    #MSG POS LLH
+                    if msg.msg_type == 0x0201:
+                        print "MSG POS LLH 0x0201"
+                        # Flag [0-2]:
+                        # 0 Single Point Positioning (SPP)
+                        # 1 Fixed RTK
+                        # 2 Float RTK
+                        fixType = msg.flags & 0x07
+                        # Only Send RTK Fixed Pose
+                        if fixType == 1:
+                            print 'Fixed RTK', fixType
+                            swiftSbpMsg.flag                 = fixType
+                            swiftSbpMsg.header.stamp         = rospy.Time.now()
+                            swiftSbpMsg.latitude             = msg.lat * 10000000
+                            swiftSbpMsg.longitude            = msg.lon * 10000000
+                            swiftSbpMsg.height               = msg.height * 1000
+                            swiftSbpMsg.tow                  = msg.tow
+                            swiftSbpMsg.horizontal_accuracy  = msg.h_accuracy
+                            swiftSbpMsg.vertical_accuracy    = msg.v_accuracy 
+                            swiftSbpMsg.numOfSat             = msg.n_sats
+                            poseLLHReceived = True
+                    #MSG BASELINE NED
+                    if msg.msg_type == 0x0203:
+                        print "MSG BASELINE NED 0x0203"
+                        dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d) 
+                        swiftSbpMsg.baseline_north = msg.n 
+                        swiftSbpMsg.baseline_east  = msg.e
+                        swiftSbpMsg.baseline_down  = msg.d
+                        swiftSbpMsg.distance       = dist
+                        poseNEDReceived            = True
+                    #MSG VEL NED
+                    if msg.msg_type == 0x0205:    
+                        print 'MSG VEL NED 0x0205'
+                        flagMsg2 = True
+                        swiftSbpMsg.vn = msg.n
+                        swiftSbpMsg.ve = msg.e
+                        swiftSbpMsg.vd = msg.d
+                        velNEDReveived = True
+                    #MSG DOPS - 0x0206 : comes at a slow rate for some reason
+                    if msg.msg_type == 0x0206:
+                        print 'MSG DOPS 0x0206'
+                        swiftSbpMsg.hdop = msg.hdop
+                        swiftSbpMsg.vdop = msg.vdop
+                        dopsReceived     = True                        
+                    #MSG BASELINE HEADING - 0x0207
+                    if(poseLLHReceived and poseNEDReceived and velNEDReveived):
+                        poseLLHReceived = False
+                        poseNEDReceived = False
+                        velNEDReveived  = False
+                        dopsReceived    = False
+                        pub.publish(swiftSbpMsg)                    
+            except KeyboardInterrupt:
+                pass
 if __name__ == '__main__':
     try:
         gpsrtk()

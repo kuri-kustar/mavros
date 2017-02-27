@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="mavros_extras" type="swift_rtk_reroute.py" name="swift_rtk_reroute" output="screen">
+    <rosparam file="$(find mavros_extras)/cfg/swift_rtk_reroute.yaml"/>
+  </node>
+</launch>
