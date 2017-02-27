@@ -66,7 +66,6 @@ private:
   UAS *uas;
   std::string gpsTopicName;
 
-//  void gpsReRouteCallback(const sensor_msgs::NavSatFix::ConstPtr &gpsFix)
   void gpsReRouteCallback(const mavros_msgs::SwiftSbp::ConstPtr &gpsFix)
   {
     mavlink_message_t msg;
