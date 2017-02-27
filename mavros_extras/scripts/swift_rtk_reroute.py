@@ -34,23 +34,28 @@ import math
 # * @return length of the message in bytes (excluding serial stream start sign)
 # */
 
+#
+# The message ids used here are compatible with libspb v0.52.4 and v1.2.1
+#
+
 def gpsrtk():
 
     rospy.sleep(0.5)  # wait for a while for init to complete before printing
     rospy.loginfo(rospy.get_name() + " start")
     rospy.loginfo("libsbp version currently used: " + sbp.version.get_git_version())
 
-    serial_port = rospy.get_param('~serial_port', '/dev/piksi')
-    baud_rate   = rospy.get_param('~baud_rate', 1000000)
+    serialPort    = rospy.get_param('~serial_port', '/dev/piksi')
+    baudRate      = rospy.get_param('~baud_rate', 1000000)
+    rerouteTopic  = rospy.get_param('~reroute_topic', '/mavros/gps_reroute/gps_fix')
     
-    print serial_port,baud_rate
+    print serialPort,baud_rate
     
-    pub = rospy.Publisher('/mavros/gps_reroute/gps_fix', SwiftSbp, queue_size=10)
+    pub = rospy.Publisher(rerouteTopic, SwiftSbp, queue_size=10)
     rospy.init_node('swift_rtk_reroute', anonymous=True)
     # We might need it later
     poseStampedECEF = PoseStamped()
     # Open a connection to Piksi
-    with PySerialDriver(serial_port, baud_rate) as driver:
+    with PySerialDriver(serialPort, baud_rate) as driver:
         with Handler(Framer(driver.read, None, verbose=True)) as source:
             poseLLHReceived = False
             poseNEDReceived = False
@@ -80,38 +85,40 @@ def gpsrtk():
                             print 'Fixed RTK', fixType
                             swiftSbpMsg.flag                 = fixType
                             swiftSbpMsg.header.stamp         = rospy.Time.now()
-                            swiftSbpMsg.latitude             = msg.lat * 10000000
-                            swiftSbpMsg.longitude            = msg.lon * 10000000
-                            swiftSbpMsg.height               = msg.height * 1000
-                            swiftSbpMsg.tow                  = msg.tow
-                            swiftSbpMsg.horizontal_accuracy  = msg.h_accuracy
-                            swiftSbpMsg.vertical_accuracy    = msg.v_accuracy 
+                            swiftSbpMsg.latitude             = msg.lat    * 10000000 # sbp: in deg 
+                            swiftSbpMsg.longitude            = msg.lon    * 10000000 # sbp: in deg
+                            swiftSbpMsg.height               = msg.height * 1000     # sbp: in m
+                            swiftSbpMsg.tow                  = msg.tow               # sbp: in time of week
+                            swiftSbpMsg.horizontal_accuracy  = msg.h_accuracy        # sbp: in mm
+                            swiftSbpMsg.vertical_accuracy    = msg.v_accuracy        # sbp: in mm
                             swiftSbpMsg.numOfSat             = msg.n_sats
                             poseLLHReceived = True
+                    #MSG BASELINE ECEF - 0x0202  - Unused
                     #MSG BASELINE NED
                     if msg.msg_type == 0x0203:
                         print "MSG BASELINE NED 0x0203"
                         dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d) 
-                        swiftSbpMsg.baseline_north = msg.n 
-                        swiftSbpMsg.baseline_east  = msg.e
-                        swiftSbpMsg.baseline_down  = msg.d
-                        swiftSbpMsg.distance       = dist
+                        swiftSbpMsg.baseline_north = msg.n  # sbp: in mm
+                        swiftSbpMsg.baseline_east  = msg.e  # sbp: in mm
+                        swiftSbpMsg.baseline_down  = msg.d  # sbp: in mm
+                        swiftSbpMsg.distance       = dist   # sbp: in mm
                         poseNEDReceived            = True
+                    #MSG VEL ECEF - 0x0204 - Unused
                     #MSG VEL NED
                     if msg.msg_type == 0x0205:    
                         print 'MSG VEL NED 0x0205'
                         flagMsg2 = True
-                        swiftSbpMsg.vn = msg.n
-                        swiftSbpMsg.ve = msg.e
-                        swiftSbpMsg.vd = msg.d
+                        swiftSbpMsg.vn = msg.n/10.0 # sbp: in mm/sec
+                        swiftSbpMsg.ve = msg.e/10.0 # sbp: in mm/sec
+                        swiftSbpMsg.vd = msg.d/10.0 # sbp: in mm/sec
                         velNEDReveived = True
                     #MSG DOPS - 0x0206 : comes at a slow rate for some reason
                     if msg.msg_type == 0x0206:
                         print 'MSG DOPS 0x0206'
-                        swiftSbpMsg.hdop = msg.hdop
-                        swiftSbpMsg.vdop = msg.vdop
+                        swiftSbpMsg.hdop = msg.hdop # sbp: in 0.01 ?
+                        swiftSbpMsg.vdop = msg.vdop # sbp: in 0.01 ?
                         dopsReceived     = True                        
-                    #MSG BASELINE HEADING - 0x0207
+                    #MSG BASELINE HEADING - 0x0207  - Unused
                     if(poseLLHReceived and poseNEDReceived and velNEDReveived):
                         poseLLHReceived = False
                         poseNEDReceived = False

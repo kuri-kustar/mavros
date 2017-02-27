@@ -75,13 +75,13 @@ private:
     pos.lat = gpsFix->latitude;
     pos.lon = gpsFix->longitude;
     pos.alt = gpsFix->height;
-    pos.vel = sqrt(gpsFix->vn * gpsFix->vn + gpsFix->ve * gpsFix->ve);		// [cm/s]
+    pos.vel = sqrt(gpsFix->vn * gpsFix->vn + gpsFix->ve * gpsFix->ve);// [cm/s]
     pos.vn =  gpsFix->vn;// [cm/s]
     pos.ve =  gpsFix->ve;// [cm/s]
     pos.vd =  gpsFix->vd;// [cm/s]
-    pos.cog = 0;// [degrees * 100]
-    pos.eph = gpsFix->hdop;
-    pos.epv = gpsFix->vdop;
+    pos.cog = 65535;// [degrees * 100]
+    pos.eph = 65535;// gpsFix->hdop;
+    pos.epv = 65535;// gpsFix->vdop;
     pos.fix_type = 3;
     pos.satellites_visible = gpsFix->numOfSat;
     mavlink_msg_hil_gps_pack_chan(UAS_PACK_CHAN(uas), &msg,
