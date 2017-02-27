@@ -75,7 +75,7 @@ private:
     pos.lat = gpsFix->latitude;
     pos.lon = gpsFix->longitude;
     pos.alt = gpsFix->height;
-    pos.vel = 0;//sqrt(vn * vn + ve * ve);		// [cm/s]
+    pos.vel = sqrt(gpsFix->vn * gpsFix->vn + gpsFix->ve * gpsFix->ve);		// [cm/s]
     pos.vn =  gpsFix->vn;// [cm/s]
     pos.ve =  gpsFix->ve;// [cm/s]
     pos.vd =  gpsFix->vd;// [cm/s]
