@@ -48,20 +48,21 @@ def gpsrtk():
     baudRate      = rospy.get_param('~baud_rate', 1000000)
     rerouteTopic  = rospy.get_param('~reroute_topic', '/mavros/gps_reroute/gps_fix')
     
-    print serialPort,baud_rate
+    print serialPort,baudRate
     
     pub = rospy.Publisher(rerouteTopic, SwiftSbp, queue_size=10)
     rospy.init_node('swift_rtk_reroute', anonymous=True)
     # We might need it later
     poseStampedECEF = PoseStamped()
     # Open a connection to Piksi
-    with PySerialDriver(serialPort, baud_rate) as driver:
+    with PySerialDriver(serialPort, baudRate) as driver:
         with Handler(Framer(driver.read, None, verbose=True)) as source:
             poseLLHReceived = False
             poseNEDReceived = False
             velNEDReveived  = False
             dopsReceived    = False
             swiftSbpMsg = SwiftSbp()
+            print "Handling" + sbp.version.get_git_version()
             try:
                 print "\n"
                 for msg, metadata in source.filter():
