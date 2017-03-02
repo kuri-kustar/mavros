@@ -79,8 +79,8 @@ private:
     pos.ve =  gpsFix->ve;// [cm/s]
     pos.vd =  gpsFix->vd;// [cm/s]
     pos.cog = 65535;// [degrees * 100]
-    pos.eph = 65535;// gpsFix->hdop;
-    pos.epv = 65535;// gpsFix->vdop;
+    pos.eph = gpsFix->hdop;
+    pos.epv = gpsFix->vdop;
     pos.fix_type = 3;
     pos.satellites_visible = gpsFix->numOfSat;
     mavlink_msg_hil_gps_pack_chan(UAS_PACK_CHAN(uas), &msg,

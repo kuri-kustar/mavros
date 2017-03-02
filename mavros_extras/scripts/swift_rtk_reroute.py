@@ -116,8 +116,8 @@ def gpsrtk():
                     #MSG DOPS - 0x0206 : comes at a slow rate for some reason
                     if msg.msg_type == 0x0206:
                         print 'MSG DOPS 0x0206'
-                        swiftSbpMsg.hdop = msg.hdop # sbp: in 0.01 ?
-                        swiftSbpMsg.vdop = msg.vdop # sbp: in 0.01 ?
+                        swiftSbpMsg.hdop = msg.hdop*0.01 # sbp: in 0.01 ?
+                        swiftSbpMsg.vdop = msg.vdop*0.01 # sbp: in 0.01 ?
                         dopsReceived     = True                        
                     #MSG BASELINE HEADING - 0x0207  - Unused
                     if(poseLLHReceived and poseNEDReceived and velNEDReveived):
