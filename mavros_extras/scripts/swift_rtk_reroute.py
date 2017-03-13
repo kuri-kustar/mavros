@@ -51,6 +51,7 @@ def gpsrtk():
     print serialPort,baudRate
     
     pub = rospy.Publisher(rerouteTopic, SwiftSbp, queue_size=10)
+    log_pub = rospy.Publisher("/rtk_log", String, queue_size=10)
     rospy.init_node('swift_rtk_reroute', anonymous=True)
     # We might need it later
     poseStampedECEF = PoseStamped()
@@ -69,6 +70,7 @@ def gpsrtk():
                     #MSG POS ECEF
                     if msg.msg_type == 0x0200:
                         print "MSG POS ECEF 0x0200"
+			log_pub.publish("MSG POS ECEF 0x0200")
                         poseStampedECEF = PoseStamped()
                         poseStampedECEF.pose.position.x = msg.x
                         poseStampedECEF.pose.position.y = msg.y
@@ -76,14 +78,22 @@ def gpsrtk():
                     #MSG POS LLH
                     if msg.msg_type == 0x0201:
                         print "MSG POS LLH 0x0201"
+			log_pub.publish("MSG POS LLH 0x0201")
                         # Flag [0-2]:
                         # 0 Single Point Positioning (SPP)
                         # 1 Fixed RTK
                         # 2 Float RTK
                         fixType = msg.flags & 0x07
                         # Only Send RTK Fixed Pose
-                        if fixType == 1:
-                            print 'Fixed RTK', fixType
+                        if fixType == 1 or fixType == 2 :
+                            print 'RTK Mode', fixType
+			    
+                            if fixType == 1:
+				log_pub.publish("RTK Mode 1")
+				print '>>>>>>>>>>>>>>>>>>>>>> Fixed RTK <<<<<<<<<<<<<<<<<<', fixType
+			    elif fixType == 2:
+				log_pub.publish("Float Mode 2")
+
                             swiftSbpMsg.flag                 = fixType
                             swiftSbpMsg.header.stamp         = rospy.Time.now()
                             swiftSbpMsg.latitude             = msg.lat    * 10000000 # sbp: in deg 
@@ -98,6 +108,7 @@ def gpsrtk():
                     #MSG BASELINE NED
                     if msg.msg_type == 0x0203:
                         print "MSG BASELINE NED 0x0203"
+			log_pub.publish("MSG BASELINE NED 0x0203")
                         dist = math.sqrt(msg.n*msg.n + msg.e*msg.e + msg.d*msg.d) 
                         swiftSbpMsg.baseline_north = msg.n  # sbp: in mm
                         swiftSbpMsg.baseline_east  = msg.e  # sbp: in mm
@@ -108,6 +119,7 @@ def gpsrtk():
                     #MSG VEL NED
                     if msg.msg_type == 0x0205:    
                         print 'MSG VEL NED 0x0205'
+			log_pub.publish("MSG VEL NED 0x0205")
                         flagMsg2 = True
                         swiftSbpMsg.vn = msg.n/10.0 # sbp: in mm/sec
                         swiftSbpMsg.ve = msg.e/10.0 # sbp: in mm/sec
@@ -116,6 +128,7 @@ def gpsrtk():
                     #MSG DOPS - 0x0206 : comes at a slow rate for some reason
                     if msg.msg_type == 0x0206:
                         print 'MSG DOPS 0x0206'
+			log_pub.publish("MSG DOPS 0x0206")
                         swiftSbpMsg.hdop = msg.hdop*0.01 # sbp: in 0.01 ?
                         swiftSbpMsg.vdop = msg.vdop*0.01 # sbp: in 0.01 ?
                         dopsReceived     = True                        
